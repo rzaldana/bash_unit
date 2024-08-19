@@ -221,7 +221,8 @@ run_test_suite() {
 
   if run_setup_suite
   then
-    run_tests || failure=$?
+    run_tests
+    failure=$?
   else
     failure=$?
   fi
@@ -266,9 +267,10 @@ run_tests() {
   for test in $tests_to_run
   do
     (
-      local status=0
+      local status
       declare -F | "$GREP" ' setup$' >/dev/null && setup
-      (__bash_unit_current_test__="$test" run_test) || status=$?
+      (__bash_unit_current_test__="$test" run_test)
+      status="$?"
       declare -F | "$GREP" ' teardown$' >/dev/null && teardown
       exit $status
     )
@@ -278,9 +280,11 @@ run_tests() {
 }
 
 run_test() {
-  set -e
   notify_test_starting "$__bash_unit_current_test__"
-  "$__bash_unit_current_test__" && notify_test_succeeded "$__bash_unit_current_test__"
+  "$__bash_unit_current_test__"
+  if [[ "$?" == "0" ]]; then
+    notify_test_succeeded "$__bash_unit_current_test__"
+  fi
 }
 
 run_teardown_suite() {
@@ -333,7 +337,9 @@ pretty_format() {
     then
       echo -en " $pretty_symbol "
     else
-      [[ -n "$alt_symbol" ]] && echo -en " $alt_symbol "
+      if [[ -n "$alt_symbol" ]]; then 
+        echo -en " $alt_symbol "
+      fi
     fi
   ) | color "$color"
 }
